@@ -8,7 +8,7 @@ import torch
 from nltk.corpus import stopwords
 from transformers import BertTokenizer, GPT2LMHeadModel, GPT2Tokenizer
 
-# nltk.download('stopwords')
+nltk.download('stopwords')
 stop_words = set(stopwords.words('spanish'))
 
 app = Flask(__name__)
