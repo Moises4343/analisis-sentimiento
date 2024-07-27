@@ -20,9 +20,8 @@ translator = Translator()
 bert_tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
 
 # Cargar las groserías tokenizadas desde el archivo
-with open('tokenized_groserias.txt', 'r', encoding='iso-8859-1') as f:
+with open('tokenized_groserias.txt', 'r') as f:
     tokenized_groserias = set(f.read().splitlines())
-
 
 # Cargar el modelo y el tokenizador GPT-2 de Hugging Face
 gpt2_model_name = "gpt2"
