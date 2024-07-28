@@ -241,10 +241,7 @@ api.add_resource(SentimentAnalysis, '/sentiment')
 def home():
     return 'Bienvenido a la API de Análisis de Sentimientos'
 
-# Ruta para el favicon
-@app.route('/favicon.ico')
-def favicon():
-    return '', 204
+
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
