@@ -115,7 +115,6 @@ api.add_resource(SentimentAnalysis, '/sentiment')
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
 """
-
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
 from textblob import TextBlob
@@ -125,6 +124,7 @@ import nltk
 import torch
 from nltk.corpus import stopwords
 from transformers import BertTokenizer, GPT2LMHeadModel, GPT2Tokenizer
+import os
 
 nltk.download('stopwords')
 stop_words = set(stopwords.words('spanish'))
@@ -138,7 +138,10 @@ translator = Translator()
 bert_tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
 
 # Cargar las groserías tokenizadas desde el archivo
-with open('tokenized_groserias.txt', 'r', encoding='iso-8859-1') as f:
+groserias_path = 'tokenized_groserias.txt'
+if not os.path.exists(groserias_path):
+    raise FileNotFoundError(f"{groserias_path} no se encuentra en el directorio actual.")
+with open(groserias_path, 'r', encoding='iso-8859-1') as f:
     tokenized_groserias = set(f.read().splitlines())
 
 # Cargar el modelo y el tokenizador GPT-2 de Hugging Face
@@ -199,32 +202,37 @@ class SentimentAnalysis(Resource):
 
     def post(self):
         data = request.get_json()
-        text = data['text']
-        
-        # Preprocesamiento del texto
-        cleaned_text = self.preprocess_text(text)
+        text = data.get('text', '')
 
-        if self.detect_groserias(cleaned_text):
+        # Validar que el texto no esté vacío
+        if not text:
+            return jsonify({'error': 'No se proporcionó texto para el análisis.'}), 400
+        
+        try:
+            # Preprocesamiento del texto
+            cleaned_text = self.preprocess_text(text)
+
+            if self.detect_groserias(cleaned_text):
+                return jsonify({'error': 'El texto contiene groserías y no puede ser procesado.'}), 400
+
+            # Traducción del texto al inglés
+            translated_text = translator.translate(cleaned_text, src='es', dest='en').text
+            
+            # Análisis de sentimiento
+            blob = TextBlob(translated_text)
+            sentiment = blob.sentiment
+            
             return jsonify({
-                'error': 'El texto contiene groserías y no puede ser procesado.'
+                'original_text': text,
+                'cleaned_text': cleaned_text,
+                'translated_text': translated_text,
+                'sentiment': {
+                    'polarity': sentiment.polarity,
+                    'subjectivity': sentiment.subjectivity
+                }
             })
-
-        # Traducción del texto al inglés
-        translated_text = translator.translate(cleaned_text, src='es', dest='en').text
-        
-        # Análisis de sentimiento
-        blob = TextBlob(translated_text)
-        sentiment = blob.sentiment
-        
-        return jsonify({
-            'original_text': text,
-            'cleaned_text': cleaned_text,
-            'translated_text': translated_text,
-            'sentiment': {
-                'polarity': sentiment.polarity,
-                'subjectivity': sentiment.subjectivity
-            }
-        })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
 api.add_resource(SentimentAnalysis, '/sentiment')
 
@@ -239,4 +247,5 @@ def favicon():
     return '', 204
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
