@@ -156,9 +156,16 @@ def corregir_ortografia(texto):
     
     # Tokenizar el texto de entrada
     inputs = gpt2_tokenizer.encode(texto, return_tensors="pt")
-    
+    attention_mask = torch.ones(inputs.shape, dtype=torch.long)  # Crear una máscara de atención
+
     # Generar texto completado
-    outputs = gpt2_model.generate(inputs, max_length=len(inputs[0]) + 1, num_return_sequences=1)
+    outputs = gpt2_model.generate(
+        inputs, 
+        attention_mask=attention_mask,  # Pasar la máscara de atención
+        max_length=len(inputs[0]) + 1, 
+        num_return_sequences=1,
+        pad_token_id=gpt2_tokenizer.eos_token_id  # Establecer pad_token_id al id del token eos
+    )
     
     # Decodificar la salida generada
     corregido = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
