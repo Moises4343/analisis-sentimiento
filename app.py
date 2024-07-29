@@ -32,35 +32,30 @@ if not os.path.exists(groserias_path):
 with open(groserias_path, 'r', encoding='iso-8859-1') as f:
     tokenized_groserias = set(f.read().splitlines())
 
-# Variables globales para los modelos GPT-2
-gpt2_model = None
-gpt2_tokenizer = None
-
-# Función para cargar el modelo y el tokenizador GPT-2 si no están cargados
-def load_gpt2_model():
-    global gpt2_model, gpt2_tokenizer
-    if gpt2_model is None or gpt2_tokenizer is None:
-        gpt2_model_name = "gpt2"  # Usar un modelo más pequeño si es necesario
-        gpt2_model = GPT2LMHeadModel.from_pretrained(gpt2_model_name)
-        gpt2_tokenizer = GPT2Tokenizer.from_pretrained(gpt2_model_name)
-        logging.info("Modelo y tokenizador GPT-2 cargados")
+# Cargar el modelo y el tokenizador GPT-2 una sola vez
+gpt2_model_name = "gpt2"  # Usar un modelo más pequeño si es necesario
+gpt2_model = GPT2LMHeadModel.from_pretrained(gpt2_model_name)
+gpt2_tokenizer = GPT2Tokenizer.from_pretrained(gpt2_model_name)
+logging.info("Modelo y tokenizador GPT-2 cargados")
 
 # Función para corregir ortografía usando GPT-2
 def corregir_ortografia(texto):
     try:
-        load_gpt2_model()  # Cargar el modelo si no está cargado
         texto = texto.replace("4", "a").replace("3", "e").replace("1", "i").replace("0", "o")
         inputs = gpt2_tokenizer.encode(texto, return_tensors="pt")
         attention_mask = torch.ones(inputs.shape, dtype=torch.long)
         outputs = gpt2_model.generate(
             inputs, 
             attention_mask=attention_mask, 
-            max_length=len(inputs[0]) + 10,  # Ajustar el max_length si es necesario
+            max_length=len(inputs[0]) + 5,  # Ajustar el max_length para acelerar el proceso
             num_return_sequences=1,
             pad_token_id=gpt2_tokenizer.eos_token_id
         )
         corregido = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
         corregido = corregido[:len(texto)]
+        # Liberar memoria después del procesamiento
+        del inputs, attention_mask, outputs
+        torch.cuda.empty_cache()  # Si estás usando GPU, limpia la caché
         return corregido
     except Exception as e:
         logging.error(f"Error en la corrección ortográfica: {e}")
