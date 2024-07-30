@@ -21,10 +21,9 @@ api = Api(app)
 
 translator = Translator()
 
-# Cargar el tokenizador BERT
 bert_tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
 
-# Cargar las groserías tokenizadas desde el archivo
+
 groserias_path = 'tokenized_groserias.txt'
 if not os.path.exists(groserias_path):
     logging.error(f"{groserias_path} no se encuentra en el directorio actual.")
@@ -33,7 +32,7 @@ with open(groserias_path, 'r', encoding='iso-8859-1') as f:
     tokenized_groserias = set(f.read().splitlines())
 
 # Cargar el modelo y el tokenizador GPT-2 una sola vez
-gpt2_model_name = "gpt2"  # Usar un modelo más pequeño si es necesario
+gpt2_model_name = "gpt2" 
 gpt2_model = GPT2LMHeadModel.from_pretrained(gpt2_model_name)
 gpt2_tokenizer = GPT2Tokenizer.from_pretrained(gpt2_model_name)
 logging.info("Modelo y tokenizador GPT-2 cargados")
@@ -53,9 +52,8 @@ def corregir_ortografia(texto):
         )
         corregido = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
         corregido = corregido[:len(texto)]
-        # Liberar memoria después del procesamiento
         del inputs, attention_mask, outputs
-        torch.cuda.empty_cache()  # Si estás usando GPU, limpia la caché
+        torch.cuda.empty_cache()  
         return corregido
     except Exception as e:
         logging.error(f"Error en la corrección ortográfica: {e}")

@@ -1,11 +1,10 @@
 import pandas as pd
 from transformers import BertTokenizer
 
-# Cargar el dataset de groserías desde data.csv
+
 df = pd.read_csv('data.csv')
 groserias = df['groseria'].tolist()
 
-# Inicializar el tokenizador de BERT
 tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
 
 # Tokenizar las groserías

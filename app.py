@@ -20,7 +20,6 @@ api = Api(app)
 
 translator = Translator()
 
-# Cargar el tokenizador BERT
 bert_tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
 
 # Cargar las groserías tokenizadas desde el archivo
