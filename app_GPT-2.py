@@ -4,10 +4,11 @@ from textblob import TextBlob
 from googletrans import Translator
 import re
 import nltk
+import torch
+from nltk.corpus import stopwords
+from transformers import BertTokenizer, GPT2LMHeadModel, GPT2Tokenizer
 import logging
 import os
-from nltk.corpus import stopwords
-from transformers import BertTokenizer
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
@@ -31,10 +32,39 @@ if not os.path.exists(groserias_path):
 with open(groserias_path, 'r', encoding='iso-8859-1') as f:
     tokenized_groserias = set(f.read().splitlines())
 
+# Cargar el modelo y el tokenizador GPT-2 una sola vez
+gpt2_model_name = "gpt2"  # Usar un modelo más pequeño si es necesario
+gpt2_model = GPT2LMHeadModel.from_pretrained(gpt2_model_name)
+gpt2_tokenizer = GPT2Tokenizer.from_pretrained(gpt2_model_name)
+logging.info("Modelo y tokenizador GPT-2 cargados")
+
+# Función para corregir ortografía usando GPT-2
+def corregir_ortografia(texto):
+    try:
+        texto = texto.replace("4", "a").replace("3", "e").replace("1", "i").replace("0", "o")
+        inputs = gpt2_tokenizer.encode(texto, return_tensors="pt")
+        attention_mask = torch.ones(inputs.shape, dtype=torch.long)
+        outputs = gpt2_model.generate(
+            inputs, 
+            attention_mask=attention_mask, 
+            max_length=len(inputs[0]) + 5,  # Ajustar el max_length para acelerar el proceso
+            num_return_sequences=1,
+            pad_token_id=gpt2_tokenizer.eos_token_id
+        )
+        corregido = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
+        corregido = corregido[:len(texto)]
+        # Liberar memoria después del procesamiento
+        del inputs, attention_mask, outputs
+        torch.cuda.empty_cache()  # Si estás usando GPU, limpia la caché
+        return corregido
+    except Exception as e:
+        logging.error(f"Error en la corrección ortográfica: {e}")
+        raise
+
 class SentimentAnalysis(Resource):
     def preprocess_text(self, text):
         try:
-            text = text.replace("4", "a").replace("3", "e").replace("1", "i").replace("0", "o")
+            text = corregir_ortografia(text)
             text = text.lower()
             text = re.sub(r'[^\w\s]', '', text)
             text = re.sub(r'\d+', '', text)
