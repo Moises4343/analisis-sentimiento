@@ -9,7 +9,7 @@ import os
 from nltk.corpus import stopwords
 from transformers import BertTokenizer
 
-# Configuración de logging
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
 
 nltk.download('stopwords')
@@ -22,7 +22,7 @@ translator = Translator()
 
 bert_tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
 
-# Cargar las groserías tokenizadas desde el archivo
+
 groserias_path = 'tokenized_groserias.txt'
 if not os.path.exists(groserias_path):
     logging.error(f"{groserias_path} no se encuentra en el directorio actual.")
